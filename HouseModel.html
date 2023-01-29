@@ -10,9 +10,10 @@
     </style>
 </head>
 <body>
-    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
 
-    <script type="importmap">
+    </script>     
+    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+   <script type="importmap">
         {
             "imports": {
                 "three": "./sample/three.module.js",
@@ -24,14 +25,17 @@
     <script type="module">
 
         import * as THREE from 'three';
-
+      
+		import { GUI } from './sample/lil-gui.module.min.js';
 
         import { OrbitControls } from './sample/OrbitControls.js';
         import { FBXLoader } from './sample/FBXLoader.js';
-        
-        let x, y, z, gc, camera, scene, renderer, stats, str = 'models/fbx/Amy/idle.fbx', appendCamMode=0, camMode=0, dir,zoomMode=0;
+		import { THREEx } from './sample/threex.domevents.js';
+ 
+       
+ let x, y, z, gc, camera,camera2, scene,scene2, renderer,renderer2, stats, str = 'models/fbx/Amy/idle.fbx', appendCamMode=0, camMode=0, dir,zoomMode=0;
         //Declare variables for Ammo
-        let physicsWorld;
+        let physicsWorld, model;
         let rigidBody_list = new Array();
         let tmpTransformation = undefined;
         const clock = new THREE.Clock();
@@ -48,14 +52,29 @@
             const container = document.createElement('div');
             document.body.appendChild(container);
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xa8def0);
+            scene.background = new THREE.Color(0xa8def0);//Light blue color
 
+			//SCENE2 in container2
+            /*const container2 = document.createElement('CANVAS');
+			var ctx=container2.getContext("2d");
+			ctx.fillStyle="#FF0000";
+			ctx.fillRect(20,20,150,100);
+            document.body.appendChild(container2);
+            scene2 = new THREE.Scene();
+            scene2.background = new THREE.Color(0xa8bef0);
+*/
             // RENDERER
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
+			// RENDERER2
+            renderer2 = new THREE.WebGLRenderer({ antialias: true });
+            renderer2.setSize(window.innerWidth, window.innerHeight/2);
+            renderer2.setPixelRatio(window.devicePixelRatio);
+            renderer2.shadowMap.enabled = true;
+           // container2.appendChild(renderer2.domElement);
 
             // CAMERA
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -74,13 +93,14 @@
             let nearPlane = 45;
             let farPlane = 30000;
 
-            //camera
-   /*         camera = new THREE.PerspectiveCamera(
+            //camera2
+          camera2 = new THREE.PerspectiveCamera(
                 fieldOfView, window.innerWidth / window.innerHeight, nearPlane,
                 farPlane
             );
-            camera.position.set(-900, -200, -900);
-            */
+            camera2.position.set(0, -1.4, 2);
+			 camera2.lookAt(-10, 0, 0);
+            
             console.log('Before Orbitcontrol, camera.positionx  was:', camera.position.x, 'camera.position was:', camera.position.z);
 
             // CONTROLS
@@ -95,6 +115,15 @@
             orbitControls.update();
 
             console.log('Before ambient light, camera.positionx  was:', camera.position.x, 'camera.position was:', camera.position.z);
+			let keyPadBoxGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+			const material= new THREE.MeshNormalMaterial({wireframe: true});
+			const keyPadBox= new THREE.Mesh(keyPadBoxGeo, material);
+			keyPadBox.position.set(0,2,0);	
+			//scene.add(keyPadBox);		
+			const domEvents = new THREEx.DomEvents(camera, renderer.domElement);
+			domEvents.addEventListener(keyPadBox, 'touchstart', event=>{
+			material.wireframe=false;
+			});
 /*
 
             //SkyBox
@@ -134,12 +163,12 @@
   
           //  scene.background = skyBox;
             // LIGHTS
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7))
+            scene.add(new THREE.AmbientLight(0xffffff, 1))
           //  scene.add(new THREE.AmbientLight(0x404040, 1))
           //  scene.add(new THREE.HemisphereLight(0xffeeb1, 0x080820, 4));
 
-            const dirLight = new THREE.DirectionalLight(0xffffff, 3)
-            dirLight.position.set( -10, 100, -10);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.2)
+            dirLight.position.set( -1000, 1000, 1000);
             dirLight.castShadow = true;
             dirLight.shadow.camera.top = 50;
             dirLight.shadow.camera.bottom = - 50;
@@ -187,18 +216,107 @@
             const BaseFloor = new Promise((res, rej) => {
                 const loader = new FBXLoader();
 
-                loader.load('models/fbx/house/Design1_2023.fbx', function (object) {
+                loader.load('models/fbx/house/Design1_2023_28Jan23.fbx', function (object) {
                     scene.add(object);
                     let s = 0.0009;
                     object.scale.set(s, s, s);
                     res(object);
-                    console.log(object);
+					console.log(object);
+                    console.log(object.getObjectByName('Cube'));
+					setPillarDimensions(object);					
+					
+					object.getObjectByName('BR3Window000').material.opacity=0.2;
+					object.getObjectByName('BR3Window000').material.transparent=true;
+					object.getObjectByName('BR3Window000').material.reflectivity=1.0;
+					object.getObjectByName('BR3Window000').material.shininess=1.0;
+					object.getObjectByName('BR1Balcony009').material.opacity=0.2;
+					object.getObjectByName('BR1Balcony009').material.transparent=true;
+					object.getObjectByName('BR1Balcony009').material.reflectivity=1.0;
+					object.getObjectByName('BR1Balcony009').material.shininess=1.0;
+					object.getObjectByName('BR1007').material.opacity=0.2;
+					object.getObjectByName('BR1007').material.transparent=true;
+					object.getObjectByName('BR1007').material.reflectivity=1.0;
+					object.getObjectByName('BR1007').material.shininess=1.0;
+object.getObjectByName('BR1002').material.opacity=0.2;
+					object.getObjectByName('BR1002').material.transparent=true;
+					object.getObjectByName('BR1002').material.reflectivity=1.0;
+					object.getObjectByName('BR1002').material.shininess=1.0;
+object.getObjectByName('BR1003').material.opacity=0.2;
+					object.getObjectByName('BR1003').material.transparent=true;
+					object.getObjectByName('BR1003').material.reflectivity=1.0;
+					object.getObjectByName('BR1003').material.shininess=1.0;
+object.getObjectByName('BR1004').material.opacity=0.2;
+					object.getObjectByName('BR1004').material.transparent=true;
+					object.getObjectByName('BR1004').material.reflectivity=1.0;
+					object.getObjectByName('BR1004').material.shininess=1.0;
+object.getObjectByName('BR1005').material.opacity=0.5;
+					object.getObjectByName('BR1005').material.transparent=true;
+					object.getObjectByName('BR1005').material.reflectivity=1.0;
+					object.getObjectByName('BR1005').material.shininess=1.0;
+object.getObjectByName('BR1006').material.opacity=0.5;
+					object.getObjectByName('BR1006').material.transparent=true;
+					object.getObjectByName('BR1006').material.reflectivity=1.0;
+					object.getObjectByName('BR1006').material.shininess=1.0;
+
+				// create the Grass textureDiffuse	
+			const textureLoader = new THREE.TextureLoader();
+            const textureDiffuse = textureLoader.load("./logos/grasslight-small.jpg");
+            
+	textureDiffuse.wrapS	= THREE.RepeatWrapping;
+	textureDiffuse.wrapT	= THREE.RepeatWrapping;
+	textureDiffuse.repeat.x= 10;//repeatX
+	textureDiffuse.repeat.y= 10;//repeatY
+	textureDiffuse.anisotropy = 16;//anisotropy
+
+	// create the textureNormal	
+			const textureNormalLoader = new THREE.TextureLoader();
+            const textureNormal = textureNormalLoader.load("./logos/grasslight-small-nm.jpg");
+            textureNormal.wrapS	= THREE.RepeatWrapping;
+	textureNormal.wrapT	= THREE.RepeatWrapping;
+	textureNormal.repeat.x	= 10;//repeatX
+	textureNormal.repeat.y	= 10;//repeatY
+	textureNormal.anisotropy= 16;//anisotropy; 
+					createFloorTexture('Cube011', object);
+
+					object.getObjectByName('Cube').material.map=textureDiffuse;
+					object.getObjectByName('Cube').material.normalMap=textureNormal;
+					object.getObjectByName('Cube').material.normalScale=new THREE.Vector2(1,1).multiplyScalar(0.5);
+
+					object.getObjectByName('Cube').material.shininess=0;
+					object.getObjectByName('Cube').material.color.r=0;
+					object.getObjectByName('Cube').material.color.g=1;
+					object.getObjectByName('Cube').material.color.b=0;
+//					object.getObjectByName('Cube').material.anisotropy=16;
+object.getObjectByName('Cube001').material.color.r=1;
+object.getObjectByName('Cube001').material.color.g=1;
+object.getObjectByName('Cube001').material.color.b=1;
+
+object.getObjectByName('BR2Balcony002').material.color.r=1;
+object.getObjectByName('BR2Balcony002').material.color.g=1;
+object.getObjectByName('BR2Balcony002').material.color.b=1;
+
+object.getObjectByName('FloorFirst').material.color.r=1;
+object.getObjectByName('FloorFirst').material.color.g=1;
+object.getObjectByName('FloorFirst').material.color.b=1;
+/*
+object.getObjectByName('BR2Balcony001').material.color.r=1;
+object.getObjectByName('BR2Balcony001').material.color.g=0;
+object.getObjectByName('BR2Balcony001').material.color.b=0;
+
+object.getObjectByName('BR1Balcony007').material.color.r=1;
+object.getObjectByName('BR1Balcony007').material.color.g=0;
+object.getObjectByName('BR1Balcony007').material.color.b=0;
+
+object.getObjectByName('BR1Balcony008').material.color.r=1;
+object.getObjectByName('BR1Balcony008').material.color.g=0;
+object.getObjectByName('BR1Balcony008').material.color.b=0;
+*/
                 });
             });
             console.log('after citymodel, camera.positionx  was:', camera.position.x, 'camera.position was:', camera.position.z);
 
             // model
-            const model = new Promise((res, rej) => {
+             model = new Promise((res, rej) => {
                 const loader = new FBXLoader();
                 //  loader.load('models/fbx/running.fbx', function (object) {
 
@@ -1215,6 +1333,407 @@
                     }
                 }
             }
+			const params={jump:0, forward:0, backward:0, left:0, right:0, up:0, down:0};			
+
+
+
+			const gui= new GUI();
+			gui.add( params, 'jump', 0, 1 ).step( 0.01 ).onChange( function () {
+				if (activeAction != animationActions[1]) {
+                        lastAction = activeAction;
+                        activeAction = animationActions[1];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        setTimeout(() => { console.log("Wait for 10ms"); }, 10);
+                        lastAction = activeAction;
+                        activeAction = animationActions[6];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                    }
+				} );	
+			gui.add( params, 'forward', 0, 1 ).step( 0.01 ).onChange( function () {
+					model.then(object => {
+                        if (!camMode) smodel = 0.003;
+                        else smodel = 0.0001;
+                        object.scale.set(smodel, smodel, smodel);
+                    });
+                    BaseFloor.then(object => {
+                        sfloor = 0.003;
+                        object.scale.set(sfloor, sfloor, sfloor);
+                    });
+                    if (activeAction != animationActions[2]) {
+                        lastAction = activeAction;
+                        activeAction = animationActions[2];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        setTimeout(() => { console.log("Wait for 10ms"); }, 10);
+                        lastAction = activeAction;
+                        activeAction = animationActions[6];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        model.then(object => {
+                            /*console.log('before going upward, face is:', face, object.position.z);
+                            if (face == 'up') {
+                                object.position.z -= Math.min(1, 1); //object.rotation.y = - Math.PI / 2;
+                            }
+                            else {
+                                face = 'up'; object.rotation.y = deltaCam - Math.PI;
+                            }
+                            camera.position.set(camera.position.x, camera.position.y, camera.position.z - Math.min(1, 1));
+                            //camera.position.z += Math.min(0.1, 0.1);
+                            // camera.lookAt(object.position)
+                            renderer.render(scene, camera);
+                            */
+                            if (appendCamMode) {
+                                camera.position.x = orbitControls.object.position.x; camera.position.y = orbitControls.object.position.y; camera.position.z = orbitControls.object.position.z;
+                                //object.lookAt(camera.position.x, 0, camera.position.z);
+                                camera.rotation.y = orbitControls.object.rotation.y;
+                                camera.lookAt(object.position);
+
+                                var forward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                                // var up = (new THREE.Vector3(0, 1, 0)).cross(forward).normalize();
+
+                                object.lookAt(object.position.x + 0.1 * forward.x, object.position.y, object.position.z + 0.1 * forward.z);
+                                object.position.x += 0.1 * forward.x;  object.position.z += 0.1 * forward.z;
+
+                                var camforward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                                //  var camright = camforward.cross(new THREE.Vector3(0, 1, 0)).normalize();
+
+                                camera.position.x += 0.1 * camforward.x; camera.position.z += 0.1 * camforward.z;
+                                camera.lookAt(object.position);
+                            }
+                            else {
+                                /*camera.position.x = orbitControls.object.position.x; camera.position.y = orbitControls.object.position.y; camera.position.z = orbitControls.object.position.z;
+                                //object.lookAt(camera.position.x, 0, camera.position.z);
+                                camera.rotation.y = orbitControls.object.rotation.y;
+                                camera.lookAt(object.position);
+
+                                var forward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                               // var up = (new THREE.Vector3(0, 1, 0)).cross(forward).normalize();
+
+                                object.lookAt(object.position.x + 0.1*forward.x, 0, object.position.z + 0.1*forward.z);
+                                object.position.x += 0.1*forward.x; object.position.y = 0; object.position.z += 0.1*forward.z;
+
+                                var camforward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                              //  var camright = camforward.cross(new THREE.Vector3(0, 1, 0)).normalize();
+
+                                camera.position.x += 0.1*camforward.x; camera.position.z += 0.1*camforward.z;
+                                camera.lookAt(object.position);
+                                */
+                                camera.position.x = orbitControls.object.position.x; camera.position.y = orbitControls.object.position.y; camera.position.z = orbitControls.object.position.z;
+                                //object.lookAt(camera.position.x, 0, camera.position.z);
+                                camera.rotation.y = orbitControls.object.rotation.y;
+                                camera.lookAt(object.position);
+                                if (!camMode) {
+                                var forward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                                // var up = (new THREE.Vector3(0, 1, 0)).cross(forward).normalize();
+
+                                object.lookAt(object.position.x + 0.1 * forward.x, object.position.y, object.position.z + 0.1 * forward.z);
+                                object.position.x += 0.1 * forward.x; object.position.z += 0.1 * forward.z;
+
+                               
+                                    var camforward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                                //  var camright = camforward.cross(new THREE.Vector3(0, 1, 0)).normalize();
+
+                                camera.position.x += 0.1 * camforward.x; camera.position.z += 0.1 * camforward.z;
+                                camera.lookAt(object.position);
+                                }
+                                else {
+                                    object.position.x += 0.2 * dir.x; object.position.z += 0.2 * dir.z;
+                                    camera.position.x += 0.2 * dir.x; camera.position.z += 0.2 * dir.z;
+                                }
+
+                            }
+
+                            orbitControls.target.set(object.position.x, object.position.y, object.position.z);
+                         //   camera.lookAt(object.position);
+                            renderer.render(scene, camera);
+                        });
+                    }
+				} );	
+			gui.add( params, 'backward', 0, 1 ).step( 0.01 ).onChange( function () {
+
+				 model.then(object => {
+                        if (!camMode) smodel = 0.003;
+                        else smodel = 0.0001;
+                        object.scale.set(smodel, smodel, smodel);
+                    });
+                    BaseFloor.then(object => {
+                        sfloor = 0.003;
+                        object.scale.set(sfloor, sfloor, sfloor);
+                    });
+                    if (activeAction != animationActions[2]) {
+                        lastAction = activeAction;
+                        activeAction = animationActions[2];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        setTimeout(() => { console.log("Wait for 10ms"); }, 10);
+                        lastAction = activeAction;
+                        activeAction = animationActions[6];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        console.log('before going downward, face is:', face);
+                        model.then(object => {
+                            /*if (face == 'straight') {
+                                object.position.z += Math.min(1, 1); object.rotation.y = deltaCam+ 2 * Math.PI;
+                            }
+                            else {
+                                face = 'straight'; object.rotation.y = deltaCam+ 2 * Math.PI;
+                            }
+                            camera.position.set(camera.position.x, camera.position.y, camera.position.z + Math.min(1, 1));
+                            // camera.position.z += Math.min(0.1, 0.1);
+                            // camera.lookAt(object.position)
+                            renderer.render(scene, camera);
+                            */
+                            if (appendCamMode) {
+                                camera.position.x = object.position.x; camera.position.y = object.position.y; camera.position.z = object.position.z;
+
+                                object.rotation.y = 0;
+                                object.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                object.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                camera.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                camera.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+
+                                orbitControls.target.set(object.position.x, object.position.y, object.position.z);
+                                orbitControls.update();
+                            }
+                            else {
+
+
+                                camera.position.x = orbitControls.object.position.x; camera.position.y = orbitControls.object.position.y; camera.position.z = orbitControls.object.position.z;
+                                //object.lookAt(camera.position.x, 0, camera.position.z);
+                                camera.rotation.y = orbitControls.object.rotation.y;
+                                camera.lookAt(object.position);
+                                if (!camMode) {
+                                var forward = new THREE.Vector3(camera.position.x - object.position.x, 0, camera.position.z - object.position.z);
+                                // var up = (new THREE.Vector3(0, 1, 0)).cross(forward).normalize();
+
+                                object.lookAt(object.position.x + 0.1 * forward.x, object.position.y, object.position.z + 0.1 * forward.z);
+                                object.position.x += 0.1 * forward.x; object.position.z += 0.1 * forward.z;
+
+                                
+                                    var camforward = new THREE.Vector3(camera.position.x - object.position.x, 0, camera.position.z - object.position.z);
+                                //  var camright = camforward.cross(new THREE.Vector3(0, 1, 0)).normalize();
+
+                                camera.position.x += 0.1 * camforward.x; camera.position.z += 0.1 * camforward.z;
+                                camera.lookAt(object.position);
+                                }
+                                else {
+                                   // object.position.x -= 0.2 * dir.x;  object.position.z -= 0.2 * dir.z;
+                                   // camera.position.x -= 0.2 * dir.x; camera.position.z -= 0.2 * dir.z;
+                                }
+                            }
+
+                            
+                            orbitControls.target.set(object.position.x, object.position.y, object.position.z);
+                            console.log('camMode', camMode);
+                            console.log('object at:', object.position.x, object.position.y, object.position.z);
+                            console.log('camera at:', camera.position.x, camera.position.y, camera.position.z);
+                         //   camera.lookAt(object.position);
+                            renderer.render(scene, camera);
+                        });
+                    }
+				});
+gui.add( params, 'left', 0, 1 ).step( 0.01 ).onChange( function () {
+model.then(object => {
+                        if (!camMode) smodel = 0.003;
+                        else smodel = 0.0001;
+                        object.scale.set(smodel, smodel, smodel);
+                    });
+                    BaseFloor.then(object => {
+                        sfloor = 0.003;
+                        object.scale.set(sfloor, sfloor, sfloor);
+                    });
+                    if (activeAction != animationActions[2]) {
+                        lastAction = activeAction;
+                        activeAction = animationActions[2];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        setTimeout(() => { console.log("Wait for 10ms"); }, 10);
+                        lastAction = activeAction;
+                        activeAction = animationActions[6];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        console.log('before going left, face is:', face);
+                        model.then(object => {
+                            /*if (face == 'left') {
+                                object.position.x -= Math.min(1, 1); 
+                            }
+                            else {
+                                face = 'left';
+                          
+                                object.rotation.y= deltaCam -Math.PI / 2;
+                            },,
+                            camera.position.set(camera.position.x - Math.min(1, 1), camera.position.y, camera.position.z);
+                           // camera.lookAt(object.position)
+                            renderer.render(scene, camera);
+                            */
+                           
+                            var vector = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
+                            console.log('value of vector before applying Angleshift:', camera.rotation.y, object.rotation.y);
+                           // object.rotation.y = camera.rotation.y - Math.PI / 2;
+                            // console.log('value of vector before applying Angleshift:', vector.angleTo(v1));
+                             var vectorObj = new THREE.Vector3(object.position.x, object.position.y, object.position.z);
+                            var v1 = new THREE.Vector3(object.position.x - camera.position.x, object.position.y - camera.position.y, object.position.z - camera.position.z);
+                            if (appendCamMode) {
+                                camera.position.x = object.position.x; camera.position.y = object.position.y; camera.position.z = object.position.z;
+                                if (camera.rotation.y == 2 * Math.PI) {
+                                    object.rotation.y += Math.PI / 2;
+                                    object.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    object.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                    camera.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    camera.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                }
+                                else {
+                                    object.rotation.y = - Math.PI / 2;
+                                    object.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    object.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                    camera.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    camera.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                }
+                                orbitControls.target.set(object.position.x-0.2, object.position.y, object.position.z+0.2);
+                                orbitControls.update();
+                            }
+                            else {
+                                camera.position.x = orbitControls.object.position.x; camera.position.y = orbitControls.object.position.y; camera.position.z = orbitControls.object.position.z;
+                                //object.lookAt(camera.position.x, 0, camera.position.z);
+                                camera.rotation.y = orbitControls.object.rotation.y;
+                                camera.lookAt(object.position);
+                                var forward = new THREE.Vector3(camera.position.x - object.position.x, 0, camera.position.z - object.position.z);
+                                var left = forward.cross(new THREE.Vector3(0, 1, 0)).normalize();
+
+                                object.lookAt(object.position.x + left.x, object.position.y, object.position.z+left.z);
+                                object.position.x += 0.2*left.x;  object.position.z += 0.2*left.z;
+                                if (!camMode) {
+                                    var camforward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                                    var camleft = (new THREE.Vector3(0, 1, 0)).cross(camforward).normalize();
+
+                                    camera.lookAt(object.position);
+                                    camera.position.x += 0.2 * camleft.x; camera.position.z += 0.2 * camleft.z;
+                                }
+                                else {
+                                    camera.position.x = object.position.x; camera.position.y = object.position.y; camera.position.z = object.position.z;
+                                }
+                            /*    console.log('value of Camera x:', camera.position.x, 'value of gc x:', object.position.x);
+                                console.log('value of Camera y:', camera.position.y, 'value of gc y:', object.position.y);
+                                console.log('value of Camera z:', camera.position.z, 'value of gc z:', object.position.z);
+                             */
+                            }
+                            orbitControls.target.set(object.position.x, object.position.y, object.position.z );
+
+                            console.log('value of Camera x:', camera.position.x, 'value of gc x:', object.position.x);
+                            console.log('value of Camera y:', camera.position.y, 'value of gc y:', object.position.y);
+                            console.log('value of Camera z:', camera.position.z, 'value of gc z:', object.position.z);
+                           // var vectorRes = vector.cross(vectorObj);
+                          // console.log(camera.position.x, camera.position.y, camera.position.z, 'obj is:', object.position.x, object.position.y, object.position.z,'vectorRes is', vectorRes);
+                          //  object.position.set(object.position.x + vectorRes.x, object.position.y + vectorRes.y, object.position.z + vectorRes.z, );
+                            renderer.render(scene, camera);
+
+                        });
+                    }
+                    
+				});
+			gui.add( params, 'right', 0, 1 ).step( 0.01 ).onChange( function () {
+model.then(object => {
+                        if (!camMode) smodel = 0.003;
+                        else smodel = 0.0001;
+                        object.scale.set(smodel, smodel, smodel);
+                    });
+                    BaseFloor.then(object => {
+                        sfloor = 0.003;
+                        object.scale.set(sfloor, sfloor, sfloor);
+                    });
+                    if (activeAction != animationActions[5]) {
+                        lastAction = activeAction;
+                        activeAction = animationActions[5];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        setTimeout(() => { console.log("Wait for 10ms"); }, 10);
+                        lastAction = activeAction;
+                        activeAction = animationActions[6];
+                        lastAction.fadeOut(1);
+                        activeAction.reset();
+                        activeAction.fadeIn(1);
+                        activeAction.play();
+                        
+                        model.then(object => {
+                           /* console.log('before going right, face is:', face, object.position.x);
+                            if (face == 'right') object.position.x += Math.min(1, 1);
+                            else {
+                                face = 'right';
+                                object.rotation.y = deltaCam+ Math.PI / 2;
+                            }
+                            
+                            camera.position.set(camera.position.x + Math.min(1, 1), camera.position.y, camera.position.z);
+                            renderer.render(scene, camera);
+*/
+                            if (appendCamMode) {
+                                camera.position.x = object.position.x; camera.position.y = object.position.y; camera.position.z = object.position.z;
+                                if (camera.rotation.y == 2 * Math.PI) {
+                                    object.rotation.y -= Math.PI / 2;
+                                    object.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    object.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                    camera.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    camera.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                }
+                                else {
+                                    object.rotation.y = Math.PI / 2;
+                                    object.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    object.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                    camera.position.x += Math.round(Math.sin(object.rotation.y) * 1);
+                                    camera.position.z += Math.round(Math.cos(object.rotation.y) * 1);
+                                }
+                                orbitControls.target.set(object.position.x, object.position.y, object.position.z);
+                                orbitControls.update();
+                            }
+                            else {
+                                camera.position.x = orbitControls.object.position.x; camera.position.y = orbitControls.object.position.y; camera.position.z = orbitControls.object.position.z;
+                                //object.lookAt(camera.position.x, 0, camera.position.z);
+                                camera.rotation.y = orbitControls.object.rotation.y;
+                                camera.lookAt(object.position);
+                                var forward = new THREE.Vector3(camera.position.x - object.position.x, 0, camera.position.z - object.position.z);
+                                var right = (new THREE.Vector3(0, 1, 0)).cross(forward).normalize();
+
+                                object.lookAt(object.position.x + right.x, object.position.y, object.position.z + right.z);
+                                object.position.x += 0.2 * right.x; object.position.z += 0.2 * right.z;
+
+                                if (!camMode) {
+                                    var camforward = new THREE.Vector3(-camera.position.x + object.position.x, 0, -camera.position.z + object.position.z);
+                                var camright = camforward.cross(new THREE.Vector3(0, 1, 0)).normalize();
+
+                                camera.lookAt(object.position);
+                                camera.position.x += 0.2 * camright.x; camera.position.z += 0.2 * camright.z;
+                                }
+                                else {
+                                camera.position.x = object.position.x; camera.position.y = object.position.y; camera.position.z = object.position.z;
+                                }
+                            }
+
+                            orbitControls.target.set(object.position.x, object.position.y, object.position.z);
+                          //  camera.lookAt(object.position);
+                            renderer.render(scene, camera);
+                        });
+                    }
+				});
+			gui.open();		
 
             orbitControls.listenToKeyEvents(window);
             window.addEventListener('resize', onWindowResize);
@@ -1225,6 +1744,7 @@
 
             if (modelReady) mixer.update(delta);
             renderer.render(scene, camera);
+		//	renderer2.render(scene2, camera2);
             requestAnimationFrame(animate);
         }
         
@@ -1237,6 +1757,98 @@
             renderer.render(scene, camera);
             //  keyDisplayQueue.updatePosition()
         }
+		function setPillarDimensions(object){				
+			object.getObjectByName('Pillar001').scale.x=20;
+			object.getObjectByName('Pillar001').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar002').scale.x=20;
+			object.getObjectByName('Pillar002').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar003').scale.x=20;
+			object.getObjectByName('Pillar003').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar004').scale.x=20;
+			object.getObjectByName('Pillar004').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar005').scale.x=20;
+			object.getObjectByName('Pillar005').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar006').scale.x=20;
+			object.getObjectByName('Pillar006').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar007').scale.x=20;
+			object.getObjectByName('Pillar007').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar008').scale.x=20;
+			object.getObjectByName('Pillar008').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar009').scale.x=20;
+			object.getObjectByName('Pillar009').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar010').scale.x=20;
+			object.getObjectByName('Pillar010').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar011').scale.x=20;
+			object.getObjectByName('Pillar011').material.color=new THREE.Color(0xffffff);
+
+			object.getObjectByName('Pillar012').scale.x=20;
+			object.getObjectByName('Pillar012').material.color=new THREE.Color(0xffffff);
+const textureLoader = new THREE.TextureLoader();
+            const textureDiffuse = textureLoader.load("./textures/ExternalWallPaint/texture-wall-background.jpg");
+            
+textureDiffuse.encoding = THREE.sRGBEncoding;	
+textureDiffuse.wrapS	= THREE.RepeatWrapping;
+	textureDiffuse.wrapT	= THREE.RepeatWrapping;
+	textureDiffuse.repeat.x= 10;//repeatX
+	textureDiffuse.repeat.y= 10;//repeatY
+	textureDiffuse.anisotropy = 16;//anisotropy
+
+const textureNormalLoader = new THREE.TextureLoader();
+            const textureNormal = textureNormalLoader.load("./textures/ExternalWallPaint/Terracotta_Tiles_006_normal.jpg");
+ textureNormal.encoding = THREE.sRGBEncoding;	
+           textureNormal.wrapS	= THREE.RepeatWrapping;
+	textureNormal.wrapT	= THREE.RepeatWrapping;
+	textureNormal.repeat.x	= 10;//repeatX
+	textureNormal.repeat.y	= 10;//repeatY
+	textureNormal.anisotropy= 1;//anisotropy; 
+
+object.getObjectByName('Cube005').material.map=textureDiffuse;
+object.getObjectByName('Cube006').material.map=textureDiffuse;
+object.getObjectByName('Cube005').material.normalMap=textureNormal;
+object.getObjectByName('Cube006').material.normalMap=textureNormal;
+				
+		}
+
+	// create the Grass textureDiffuse	
+
+		function createFloorTexture(id, object){
+			const textureLoader = new THREE.TextureLoader();
+            const textureDiffuse = textureLoader.load("./textures/FloorTiles/VG_Tiles001/Maps/tiled-stones.jpg");
+            
+textureDiffuse.encoding = THREE.sRGBEncoding;	
+textureDiffuse.wrapS	= THREE.RepeatWrapping;
+	textureDiffuse.wrapT	= THREE.RepeatWrapping;
+	textureDiffuse.repeat.x= 20;//repeatX
+	textureDiffuse.repeat.y= 20;//repeatY
+	textureDiffuse.anisotropy = 16;//anisotropy
+
+	// create the textureNormal	
+			const textureNormalLoader = new THREE.TextureLoader();
+            const textureNormal = textureNormalLoader.load("./textures/FloorTiles/VG_Tiles001/Maps/Tiles001-Bump.jpg");
+ textureNormal.encoding = THREE.sRGBEncoding;	
+           textureNormal.wrapS	= THREE.RepeatWrapping;
+	textureNormal.wrapT	= THREE.RepeatWrapping;
+	textureNormal.repeat.x	= 10;//repeatX
+	textureNormal.repeat.y	= 10;//repeatY
+	textureNormal.anisotropy= 1;//anisotropy; 
+
+
+					object.getObjectByName(id).material.map=textureDiffuse;
+					object.getObjectByName(id).material.normalMap=textureNormal;
+					object.getObjectByName(id).material.normalScale=new THREE.Vector2(1,1).multiplyScalar(0.5);
+					object.getObjectByName(id).material.roughness=0.5;
+					object.getObjectByName(id).material.color=new THREE.Color(0xffffff);
+}
 
         function generateFloor() {
             // TEXTURES
